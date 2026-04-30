@@ -1,89 +1,112 @@
 const API = "http://localhost:3000/players";
 
+// LOAD ALL ON START
+window.onload = load;
+
+// ADD / UPDATE PLAYER
 document.getElementById("form").onsubmit = async (e) => {
     e.preventDefault();
 
     const data = {
-        name: name.value,
-        age: age.value,
-        photo: photo.value,
-        career: career.value,
-        fifties: fifties.value
+        name: document.getElementById("name").value,
+        age: document.getElementById("age").value,
+        photo: document.getElementById("photo").value,
+        career: document.getElementById("career").value,
+        fifties: document.getElementById("fifties").value
     };
 
-    const id = document.getElementById("id").value;
-
-    if (id) {
-        await fetch(`${API}/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
-    } else {
-        await fetch(API, {
+    try {
+        const res = await fetch("http://localhost:3000/players", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(data)
         });
-    }
 
-    load();
+        console.log("STATUS:", res.status);
+
+        if (!res.ok) {
+            const err = await res.text();
+            console.log("ERROR RESPONSE:", err);
+            alert("Backend error: " + err);
+            return;
+        }
+
+        alert("Player saved successfully!");
+        load();
+
+    } catch (err) {
+        console.log("FETCH FAILED:", err);
+        alert("Request failed. Check console.");
+    }
 };
 
-// LOAD ALL
+// LOAD ALL PLAYERS
 async function load() {
     const res = await fetch(API);
     const data = await res.json();
     show(data);
 }
 
-// SEARCH
+// SEARCH PLAYER
 async function search() {
     const name = document.getElementById("search").value;
-    const res = await fetch(API + "/search?name=" + name);
+
+    const res = await fetch(`${API}/search?name=${name}`);
     const data = await res.json();
+
     show(data);
 }
 
-// SHOW
+// SHOW PLAYERS
 function show(data) {
     const list = document.getElementById("list");
     list.innerHTML = "";
 
     data.forEach(p => {
         list.innerHTML += `
-            <div>
+            <div style="border:1px solid black; padding:10px; margin:10px;">
                 <h3>${p.name}</h3>
-                <img src="${p.photo}" width="100">
-                <p>${p.age}</p>
-                <p>${p.career}</p>
-                <p>${p.fifties}</p>
+                <img src="${p.photo}" width="100"
+     onerror="this.src='https://via.placeholder.com/100'"><br>
+                <p>Age: ${p.age}</p>
+                <p>Career: ${p.career}</p>
+                <p>Fifties: ${p.fifties}</p>
 
-                <button onclick="edit(${p.id})">Edit</button>
-                <button onclick="del(${p.id})">Delete</button>
+                <button onclick="editPlayer(${p.id})">Edit</button>
+                <button onclick="deletePlayer(${p.id})">Delete</button>
             </div>
         `;
     });
 }
 
-// EDIT
-async function edit(id) {
+// EDIT PLAYER
+async function editPlayer(id) {
     const res = await fetch(API);
     const data = await res.json();
-    const p = data.find(x => x.id === id);
+
+    const p = data.find(x => x.id == id); // FIXED (== not ===)
 
     document.getElementById("id").value = p.id;
-    name.value = p.name;
-    age.value = p.age;
-    photo.value = p.photo;
-    career.value = p.career;
-    fifties.value = p.fifties;
+    document.getElementById("name").value = p.name;
+    document.getElementById("age").value = p.age;
+    document.getElementById("photo").value = p.photo;
+    document.getElementById("career").value = p.career;
+    document.getElementById("fifties").value = p.fifties;
 }
 
-// DELETE
-async function del(id) {
-    await fetch(API + "/" + id, { method: "DELETE" });
+// DELETE PLAYER
+async function deletePlayer(id) {
+    await fetch(`${API}/${id}`, {
+        method: "DELETE"
+    });
+
     load();
 }
 
-load();
+// RESET FORM
+function resetForm() {
+    document.getElementById("form").reset();
+    document.getElementById("id").value = "";
+}
